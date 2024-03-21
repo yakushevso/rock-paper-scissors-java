@@ -1,19 +1,30 @@
 package rockpaperscissors;
 
-import java.util.*;
+import java.util.Scanner;
+import java.util.Random;
 
 public class Main {
     public static void main(String[] args) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            String users = scanner.nextLine();
+        try (Scanner sc = new Scanner(System.in)) {
+            while (true) {
+                String users = sc.nextLine();
 
-            String computer = switch (new Random().nextInt(3)) {
-                case 0 -> "scissors";
-                case 1 -> "rock";
-                default -> "paper";
-            };
+                if (users.equals("scissors") || users.equals("rock") || users.equals("paper")) {
+                    String computer = switch (new Random().nextInt(3)) {
+                        case 0 -> "scissors";
+                        case 1 -> "rock";
+                        default -> "paper";
+                    };
 
-            checkWin(users, computer);
+                    checkWin(users, computer);
+                    System.out.println();
+                } else if (users.equals("!exit")) {
+                    System.out.println("Bye!");
+                    break;
+                } else {
+                    System.out.println("Invalid input");
+                }
+            }
         }
     }
 

@@ -3,8 +3,6 @@ import org.hyperskill.hstest.testcase.CheckResult;
 import org.hyperskill.hstest.testcase.TestCase;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
-import java.util.Hashtable;
 import java.util.List;
 
 public class Tests extends StageTest<String> {
@@ -14,109 +12,116 @@ public class Tests extends StageTest<String> {
     int loses = 0;
     int wins = 0;
     int draws = 0;
-
-    CheckResult checkRandom(String reply, String attach) {
-        CheckResult wrongRandomize = CheckResult.wrong(String.format(
-                "The results of the games: %s wins, %s draws and %s loses\n" +
-                        "Looks like you don't use the random module to choose a random option!\n" +
-                        "The number of wins, draws and loses should be approximately the same.\n" +
-                        "Make sure you output the results of the games the same way as in the examples!\n" +
-                        "If you are sure that you use random module try to rerun the tests!\n", wins, draws, loses));
-        if (loses < 30)
-            return wrongRandomize;
-        if (draws < 30)
-            return wrongRandomize;
-        if (wins < 30)
-            return wrongRandomize;
-        return CheckResult.correct();
-    }
-
-    public CheckResult check(String reply, String attach) {
-        CheckResult wrongResult = CheckResult.wrong(String.format(
-                "Seems like your answer (\"%s\") is either inconsistent " +
-                        "with the rock-paper-scissors rules or the string is formatted incorrectly.  " +
-                        "Check punctuation, spelling, and capitalization of your output. " +
-                        "Also, make sure you are following the rules of the game.", reply.strip()));
-        Dictionary<String, String> hits = new Hashtable<>();
-        hits.put("rock", "scissors");
-        hits.put("scissors", "paper");
-        hits.put("paper", "rock");
-
-        String computerOption = "not found";
-
-
-
-        if ((reply.toLowerCase().contains("scissors") && (reply.toLowerCase().contains("paper") || reply.toLowerCase().contains("rock"))) ||
-                (reply.toLowerCase().contains("paper") && reply.toLowerCase().contains("rock"))) {
-            return CheckResult.wrong("Seems like your answer (\"" + reply.strip() + "\") contains more than one of possible" +
-                    " options ['scissors', 'paper', 'rock']");
-        }
-
-        if (reply.toLowerCase().contains("scissors"))
-            computerOption = "scissors";
-        else if (reply.toLowerCase().contains("paper"))
-            computerOption = "paper";
-        else if (reply.toLowerCase().contains("rock"))
-            computerOption = "rock";
-
-        if (computerOption.contains("not found"))
-            return wrongResult;
-
-        if ((reply.toLowerCase().contains("well done") && (reply.toLowerCase().contains("draw") || reply.toLowerCase().contains("sorry"))) ||
-                (reply.toLowerCase().contains("draw") && reply.toLowerCase().contains("sorry"))) {
-            return CheckResult.wrong("Seems like your answer (\"" + reply.strip() + "\") contains more than one of possible" +
-                    " results");
-        }
-
-        String result;
-        String feedback;
-        if (hits.get(attach).equals(computerOption)) {
-            result = "well done";
-            feedback = String.format("Well done. The computer chose %s and failed", hits.get(attach));
-        } else if (attach.contains(computerOption)) {
-            result = "draw";
-            feedback = String.format("There is a draw (%s)", hits.get(attach));
-        } else {
-            result = "sorry";
-            feedback = String.format("Sorry, but the computer chose %s", hits.get(attach));
-        }
-
-        if (!reply.toLowerCase().contains(result))
-            return CheckResult.wrong(String.format("Incorrect result found in your answer (\"%s\") when player chose " +
-                    "\"%s\" and computer chose \"%s\".\nExpected: \"%s\"", reply.strip(), attach, hits.get(attach),
-                    feedback));
-
-        if (reply.toLowerCase().contains("sorry"))
-            loses += 1;
-        else if (reply.toLowerCase().contains("draw"))
-            draws += 1;
-        else if (reply.toLowerCase().contains("well done"))
-            wins += 1;
-        else
-            return wrongResult;
-        return CheckResult.correct();
-
-    }
+    int startScore = 350;
+    String userName = "Bob";
 
     public List<TestCase<String>> generate() {
-        List<String> inputs = new ArrayList<>();
-        for (String option : cases) {
-            for (int i = 0; i < 50; i++)
-                inputs.add(option);
-        }
+        String[] validInputCases = {"rock\npaper\nscissors\npaper\nscissors\nrock\npaper\nscissors\n!exit",
+                "scissors\nscissors\nscissors\n!exit"};
+        String[] invalidInputCases = {"rock\npaper\npaper\nscissors\nblabla\n!exit",
+                "rock\ninvalid\n!exit",
+                "rock\nrock\nrock\nrock-n-roll\n!exit"};
         List<TestCase<String>> tests = new ArrayList<>();
-        for (String input : inputs) {
+        //Cases that checks multiple input
+        for (String input : validInputCases) {
             TestCase<String> testCase = new TestCase<>();
-            testCase.setAttach(input);
+            testCase.setCheckFunc(this::checkValidInputs);
+            testCase.setAttach(String.valueOf(input.split("\n").length - 1));
             testCase.setInput(input);
             tests.add(testCase);
         }
+        //Cases that check invalid input
+        for (String input : invalidInputCases) {
+            TestCase<String> testCase = new TestCase<>();
+            testCase.setCheckFunc(this::checkInvalidInput);
+            testCase.setInput(input);
+            tests.add(testCase);
+        }
+        //Cases that check using random module
+        String longInput = "rock\n".repeat(100) + "!exit";
         TestCase<String> testCase = new TestCase<>();
-        testCase.setInput("rock");
+        testCase.setCheckFunc(this::checkResults);
         testCase.setAttach("rock");
-        testCase.setCheckFunc(this::checkRandom);
+        testCase.setInput(longInput);
         tests.add(testCase);
         return tests;
+
+    }
+
+    CheckResult checkInvalidInput(String reply, String attach) {
+        if (!reply.toLowerCase().contains("invalid"))
+            return CheckResult.wrong(
+                    "Looks like your program doesn't handle invalid inputs correctly.\n" +
+                            "You should print 'Invalid input' if the input can't be processed.");
+        return CheckResult.correct();
+    }
+
+    CheckResult checkValidInputs(String reply, String attach) {
+        int results = 0;
+        int attachInt = Integer.parseInt(attach);
+        for (String s : reply.toLowerCase().split("\n")) {
+            if (s.contains("sorry"))
+                results++;
+            if (s.contains("draw"))
+                results++;
+            if (s.contains("well done"))
+                results++;
+        }
+        if (results != attachInt) {
+            return CheckResult.wrong(String.format(
+                    "Not enough results of the games were printed!\n " +
+                            "Tried to input %s actions and got %s results of the games.\n" +
+                            "Perhaps your program did not run enough games. " +
+                            "Is it set up correctly to loop until the user inputs ‘!exit’? \n" +
+                            "Also, make sure you print the result  of the game " +
+                            "in the correct format after each valid input!",
+                    attach, results));
+        }
+        return CheckResult.correct();
+    }
+
+    CheckResult checkResults(String reply, String attach) {
+        for (String line : reply.split("\n")) {
+            String lowerLine = line.toLowerCase();
+            if (lowerLine.contains("sorry"))
+                loses++;
+            else if (lowerLine.contains("draw"))
+                draws++;
+            else if (lowerLine.contains("well done"))
+                wins++;
+
+            if (lowerLine.contains("well done") && !lowerLine.contains("scissors"))
+                return CheckResult.wrong(String.format(
+                        "Wrong result of the game:\n> rock\n%s\nRock can only beat scissors!", line));
+            else if (lowerLine.contains("draw") && !lowerLine.contains("rock"))
+                return CheckResult.wrong(String.format(
+                        "Wrong result of the game:\n> rock\n%s\n" +
+                                "The game ends with a draw only when the user " +
+                                "and the computer both choose the same option", line));
+            else if (lowerLine.contains("sorry") && !lowerLine.contains("paper"))
+                return CheckResult.wrong(String.format(
+                        "Wrong result of the game:\n> rock\n%s\nOnly paper can beat rock!", line));
+
+        }
+        CheckResult wrongRandomize = CheckResult.wrong(String.format(
+                "The results of the games: %s wins, %s draws and %s loses\n" +
+                        "The game is too easy to win. Is the computer being too predictable? " +
+                        "The number of wins, draws and loses should be approximately the same.\n" +
+                        "Perhaps you don't use the random module to choose random option.\n" +
+                        "Also, make sure you output the results of the games " +
+                        "the same way as was stated in the examples!\n" +
+                        "If you are sure that you use the random module, try to rerun the tests!\n",
+                wins, draws, loses));
+
+        if (loses < 20)
+            return wrongRandomize;
+        if (draws < 20)
+            return wrongRandomize;
+        if (wins < 20)
+            return wrongRandomize;
+
+        return CheckResult.correct();
+
     }
 
 }
