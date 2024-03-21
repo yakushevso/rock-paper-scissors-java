@@ -1,0 +1,20 @@
+# course config files
+*.yaml
+
+# gradle
+.gradle/
+/gradle/
+/gradlew
+/gradlew.bat
+build
+out
+
+# idea config
+.idea
+
+# stages
+/Rock-Paper-Scissors (Java)/Unfair computer/
+/Rock-Paper-Scissors (Java)/Equalizing chances/
+/Rock-Paper-Scissors (Java)/Endless game/
+/Rock-Paper-Scissors (Java)/Scoring the game/
+/Rock-Paper-Scissors (Java)/More options/
